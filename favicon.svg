@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Microbiology Lab">
+  <rect width="32" height="32" rx="7" fill="#E7EDFA"/>
+  <circle cx="11.5" cy="10.5" r="6" fill="#0047BB"/>
+  <circle cx="22" cy="13" r="3.4" fill="#FC4C02"/>
+  <circle cx="14.5" cy="22.5" r="4.6" fill="#0047BB" fill-opacity="0.55"/>
+  <circle cx="23" cy="23" r="2.7" fill="#0047BB" fill-opacity="0.35"/>
+</svg>
