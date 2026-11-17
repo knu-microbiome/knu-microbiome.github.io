@@ -144,64 +144,95 @@
     new MutationObserver(function () { rgb = accentRGB(); }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
   })();
 
-// Small decorative microbes: no plugin, pointer capture or layout movement.
+// Small decorative microbes, using the available space on each screen.
 (function () {
   'use strict';
-  var preference = window.matchMedia('(prefers-reduced-motion: reduce)');
-  var paused = false;
-  try { paused = localStorage.getItem('mblab-motion') === 'off'; } catch (_) {}
-  var layer = document.createElement('div');
-  layer.className = 'microbe-drift-layer';
-  layer.setAttribute('aria-hidden', 'true');
-  document.body.appendChild(layer);
-  var toggle = document.createElement('button');
-  toggle.type = 'button';
-  toggle.className = 'microbe-motion-toggle';
-  document.body.appendChild(toggle);
-  var stopped = true;
-  var sprites = [];
-  var paths = ['assets/mascots/microbe-teal.webp', 'assets/mascots/microbe-orange.webp'];
-  function target(i) {
-    var width = window.innerWidth, height = window.innerHeight;
-    var small = width < 720;
-    var gutter = small ? 5 : Math.max(16, Math.min(80, (width - 1168) / 2 - 28));
-    var x = i % 2 ? width - 26 - Math.random() * gutter : Math.random() * gutter - (small ? 12 : 0);
-    return {x:x, y:140 + Math.random() * Math.max(30, height - 225)};
+  var preference=window.matchMedia('(prefers-reduced-motion: reduce)');
+  var paused=false;
+  try{paused=localStorage.getItem('mblab-motion')==='off';}catch(_){}
+  var layer=document.createElement('div');layer.className='microbe-drift-layer';layer.setAttribute('aria-hidden','true');document.body.appendChild(layer);
+  var toggle=document.createElement('button');toggle.type='button';toggle.className='microbe-motion-toggle';document.body.appendChild(toggle);
+  var stopped=true,sprites=[],size=28;
+  var paths=['assets/mascots/microbe-teal.webp','assets/mascots/microbe-orange.webp'];
+
+  function mobileLanes(){
+    var width=window.innerWidth,height=window.innerHeight,inset=14,rects=[];
+    var nav=document.querySelector('#nav');
+    var top=Math.max(126,nav?nav.getBoundingClientRect().bottom+16:126);
+    document.querySelectorAll('h1,h2,h3,h4,p,label,dt,dd,.name,.role,.pub-title,.pub-meta,.sel-auth,.cv-body,.cv-yr,a:not(.study-link),button,input,select,img').forEach(function(el){
+      if(el.closest('.microbe-drift-layer'))return;
+      var box=el.getBoundingClientRect();
+      if(!box.width||!box.height||box.bottom<top||box.top>height||getComputedStyle(el).visibility==='hidden')return;
+      var boxes;
+      if(el.matches('button,input,select,img'))boxes=[box];
+      else{var range=document.createRange();range.selectNodeContents(el);boxes=Array.from(range.getClientRects());}
+      boxes.forEach(function(r){if(r.width&&r.height)rects.push({left:r.left-8,right:r.right+8,top:r.top-8,bottom:r.bottom+8});});
+    });
+    var candidates=[];
+    function add(left,right,y){if(right-left>=80)candidates.push({left:left,right:right,y:y,width:right-left});}
+    for(var y=top;y<=height-size-20;y+=12){
+      var spans=rects.filter(function(r){return r.bottom>y-5&&r.top<y+size+5;}).sort(function(a,b){return a.left-b.left;});
+      var cursor=inset;
+      spans.forEach(function(r){
+        if(r.right<=cursor)return;
+        add(cursor,Math.min(width-inset-size,r.left-size),y);
+        cursor=Math.max(cursor,r.right);
+      });
+      add(cursor,width-inset-size,y);
+    }
+    // Prefer wide spaces and separate vertical levels, rather than edge lanes.
+    candidates.forEach(function(l){l.score=l.width+Math.random()*24;});
+    candidates.sort(function(a,b){return b.score-a.score;});
+    var chosen=[];
+    candidates.forEach(function(l){if(chosen.length<2&&chosen.every(function(x){return Math.abs(x.y-l.y)>72;}))chosen.push(l);});
+    return chosen;
   }
-  function move(sprite, i) {
-    if (stopped) return;
-    var next = target(i);
-    var animation = sprite.element.animate([
+  function desktopPoint(i){
+    var w=window.innerWidth,h=window.innerHeight,gutter=Math.max(16,Math.min(80,(w-1168)/2-28));
+    return {x:i%2?w-28-Math.random()*gutter:Math.random()*gutter,y:140+Math.random()*Math.max(30,h-225)};
+  }
+  function lanePoint(lane,from){
+    var fraction=from?(from.x<(lane.left+lane.right)/2?0.65+Math.random()*0.3:0.05+Math.random()*0.3):0.35+Math.random()*0.3;
+    return {x:lane.left+fraction*lane.width,y:lane.y};
+  }
+  function move(sprite,i){
+    if(stopped)return;
+    var next=sprite.lane?lanePoint(sprite.lane,sprite.point):desktopPoint(i);
+    var animation=sprite.element.animate([
       {transform:'translate3d('+sprite.point.x+'px,'+sprite.point.y+'px,0)'},
       {transform:'translate3d('+next.x+'px,'+next.y+'px,0)'}
-    ], {duration:18000 + Math.random() * 18000, easing:'ease-in-out', fill:'forwards'});
-    sprite.animation = animation;
-    animation.finished.then(function () {sprite.point=next;move(sprite,i);}).catch(function () {});
+    ],{duration:sprite.lane?14000+Math.random()*10000:18000+Math.random()*18000,easing:'ease-in-out',fill:'forwards'});
+    sprite.animation=animation;
+    animation.finished.then(function(){sprite.point=next;move(sprite,i);}).catch(function(){});
   }
-  function sync() {
-    stopped = paused || preference.matches || document.hidden;
-    sprites.forEach(function(s) {if(s.animation)s.animation.cancel();});
-    layer.replaceChildren();
-    sprites = [];
-    document.body.classList.toggle('microbe-motion-ready', !stopped);
-    toggle.hidden = preference.matches;
-    toggle.textContent = paused ? '▶' : 'Ⅱ';
-    toggle.setAttribute('aria-label', paused ? '미생물 캐릭터 움직임 재생' : '미생물 캐릭터 움직임 일시정지');
-    toggle.title = toggle.getAttribute('aria-label');
-    toggle.setAttribute('aria-pressed', String(!paused));
+  function sync(){
+    stopped=paused||preference.matches||document.hidden;
+    sprites.forEach(function(s){if(s.animation)s.animation.cancel();});layer.replaceChildren();sprites=[];
+    document.body.classList.toggle('microbe-motion-ready',!stopped);
+    toggle.hidden=preference.matches;toggle.textContent=paused?'▶':'Ⅱ';
+    toggle.setAttribute('aria-label',paused?'미생물 캐릭터 움직임 재생':'미생물 캐릭터 움직임 일시정지');toggle.title=toggle.getAttribute('aria-label');toggle.setAttribute('aria-pressed',String(!paused));
     if(stopped)return;
-    var count = window.innerWidth < 720 ? 2 : 3;
-    for(var i=0;i<count;i++) {
-      var element=document.createElement('span');element.className='microbe-drifter';
-      var img=document.createElement('img');img.src=paths[i%paths.length];img.alt='';img.width=28;img.height=28;
-      img.style.animationDelay=(-i*1.7)+'s';element.appendChild(img);layer.appendChild(element);
-      var sprite={element:element,point:target(i)};sprites.push(sprite);move(sprite,i);
+    var small=window.innerWidth<720;size=small?24:28;
+    var lanes=small?mobileLanes():[];
+    if(small&&!lanes.length){document.body.classList.remove('microbe-motion-ready');return;}
+    var count=small?lanes.length:3;
+    for(var i=0;i<count;i++){
+      var element=document.createElement('span');element.className='microbe-drifter';element.style.width=size+'px';element.style.height=size+'px';
+      var img=document.createElement('img');img.src=paths[i%paths.length];img.alt='';img.width=size;img.height=size;img.style.animationDelay=(-i*1.7)+'s';element.appendChild(img);layer.appendChild(element);
+      var lane=small?lanes[i]:null;
+      var sprite={element:element,lane:lane,point:lane?lanePoint(lane):desktopPoint(i)};sprites.push(sprite);move(sprite,i);
     }
   }
-  toggle.addEventListener('click', function(){paused=!paused;try{localStorage.setItem('mblab-motion',paused?'off':'on');}catch(_){}sync();});
-  preference.addEventListener('change',sync);
-  document.addEventListener('visibilitychange',sync);
-  var resizeTimer;
+  toggle.addEventListener('click',function(){paused=!paused;try{localStorage.setItem('mblab-motion',paused?'off':'on');}catch(_){}sync();});
+  preference.addEventListener('change',sync);document.addEventListener('visibilitychange',sync);
+  var resizeTimer,scrollTimer;
   window.addEventListener('resize',function(){clearTimeout(resizeTimer);resizeTimer=setTimeout(sync,180);});
-  sync();
+  window.addEventListener('scroll',function(){
+    if(window.innerWidth>=720||stopped)return;
+    layer.style.opacity='0';clearTimeout(scrollTimer);
+    scrollTimer=setTimeout(function(){layer.style.opacity='';sync();},180);
+  },{passive:true});
+  var menu=document.querySelector('.menu-toggle');
+  if(menu)menu.addEventListener('click',function(){if(window.innerWidth<720)setTimeout(sync,0);});
+  sync();if(document.fonts)document.fonts.ready.then(sync);
 })();
