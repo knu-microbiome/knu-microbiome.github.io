@@ -1,0 +1,7 @@
+/* Journal-level JCR metrics. The metric year is explicit for latest-year fallbacks. */
+.journal-metrics{display:inline-flex;flex-wrap:wrap;align-items:baseline;gap:9px;font-family:Manrope,sans-serif;font-size:12px;font-weight:500;line-height:1.6;color:var(--muted);vertical-align:baseline}
+.journal-metrics .metric-if{color:var(--ink)}
+.journal-metrics .metric-quartile{border-left:1px solid var(--line);padding-left:9px}
+.journal-metrics .metric-reference{font-size:11px;color:var(--faint)}
+.sel>.journal-metrics{margin-top:9px;margin-bottom:3px}
+.pub-meta>.journal-metrics{margin-block:1px}
