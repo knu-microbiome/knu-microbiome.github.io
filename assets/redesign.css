@@ -173,3 +173,7 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;ba
 @keyframes microbe-bob{0%,100%{transform:translateY(-3px) rotate(-9deg)}50%{transform:translateY(3px) rotate(9deg)}}
 @media(max-width:680px){body::before{background-position:left center;opacity:.38}.pi-card .profile-portrait{width:120px;height:160px}.microbe-drifter{opacity:.65}.microbe-motion-toggle{right:10px;bottom:10px}}
 @media(prefers-reduced-motion:reduce){.microbe-drift-layer,.microbe-motion-toggle{display:none}.microbe-drifter img{animation:none}}
+
+/* Keep the profile readable at intermediate browser widths. */
+.pi-card>div{min-width:0;flex:1}
+@media(max-width:900px){.pi-card{flex-direction:column}.pi-card .profile-portrait{width:120px;height:160px}}
