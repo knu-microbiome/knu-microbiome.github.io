@@ -3,3 +3,7 @@
 .person .profile-photo{width:86px;height:108px}
 .intern .profile-photo{width:64px;height:80px}
 .profile-photo .member-portrait{display:block;width:100%;height:100%;object-fit:cover;object-position:var(--photo-position,50% 30%);transform:scale(var(--photo-zoom,1));transform-origin:var(--photo-origin,50% 30%)}
+
+/* Member cards have no click action. Keep their appearance static. */
+.person,.intern{transition:none;cursor:default;-webkit-tap-highlight-color:transparent}
+.person:hover,.person:active,.intern:hover,.intern:active{transform:none;box-shadow:none;border-color:var(--line)}
